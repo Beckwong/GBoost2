@@ -166,8 +166,29 @@ void CalculateMarginalDistr(uint64* genoCtrl_F, uint64* genoCtrl_M, uint64* geno
 			count = 0;
 			for (int i3 = 0; i3 < nlongintCase_Gender[1]; i3++)
 			{
-				count += bitCount(genoCtrl_M[])
+				count += bitCount(genoCtrl_M[i3 * 3 * nsnps + i2*nsnps + i1]);
 			}
+			pMarginalDistrSNP_Y[(i2*MarginalDistrSNP_Y_DimensionX + 1)*nsnps + i1] = count;
+
+			count = 0;
+			for (int i3 = 0; i3 < nlongintCase_Gender[2]; i3++)
+			{
+				count += bitCount(genoCase_F[i3 * 3 * nsnps + i2*nsnps + i1]);
+			}
+			pMarginalDistrSNP_Y[(i2*MarginalDistrSNP_Y_DimensionX + 2)*nsnps + i1] = count;
+
+			count = 0;
+			for (int i3 = 0; i3 < nlongintCase_Gender[3]; i3++)
+			{
+				count += bitCount(genoCase_F[i3 * 3 * nsnps + i2*nsnps + i1]);
+			}
+			pMarginalDistrSNP_Y[(i2*MarginalDistrSNP_Y_DimensionX + 2)*nsnps + i1] = count;
+
+			pMarginalDistrSNP[i2*nsnps+i1] = 
+				pMarginalDistrSNP_Y[(i2*MarginalDistrSNP_Y_DimensionX + 0)*nsnps + i1] +
+				pMarginalDistrSNP_Y[(i2*MarginalDistrSNP_Y_DimensionX + 1)*nsnps + i1] +
+				pMarginalDistrSNP_Y[(i2*MarginalDistrSNP_Y_DimensionX + 2)*nsnps + i1] +
+				pMarginalDistrSNP_Y[(i2*MarginalDistrSNP_Y_DimensionX + 3)*nsnps + i1];
 		}
 	}
 }
@@ -239,7 +260,8 @@ int main()
 
 	int nsamples, nsnps;
 	int *nCase_Gender, *nlongintCase_Gender;
-	
+	int *GenoJointDistr;
+
 	int offset;
 	 
 	int LengthLongType = 64;
@@ -252,6 +274,7 @@ int main()
 	char filename_i[100];
 	char *inputfilename = "filenamelist.txt";
 	uint64 *genoCtrl_F, *genoCtrl_M, *genoCase_F, *genoCase_M;
+	
 
 	if (initCUDA() == -1)
 	{
@@ -461,6 +484,13 @@ int main()
 	pMarginalDistrSNP_Y = (int *)malloc(MarginalDistrSNP_Y_DimensionX*MarginalDistrSNP_Y_DimensionY*nsnps*sizeof(int));
 	CalculateMarginalDistr(genoCtrl_F, genoCtrl_M, genoCase_F, genoCase_M, nlongintCase_Gender, nsnps, nsamples, pMarginalDistrSNP, pMarginalDistrSNP_Y);
 
+	time(&st);
+
+	GenoJointDistr = (int *)calloc(4 * 9, sizeof(int));
+	vector<double>InteractionMeasure;
+	vector<pair<int, int>>InteractionPair;
+	cuda_GetInteractionPairs(InteractionMeasure,InteractionPair,genoCtrl_F, genoCtrl_M, genoCase_F, genoCase_M, 
+							nsnps, nsamples, nlongintCase_Gender, pMarginalDistrSNP, pMarginalDistrSNP_Y, wordbits, 65536);
 
 
 

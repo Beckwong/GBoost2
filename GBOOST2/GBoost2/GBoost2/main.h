@@ -21,7 +21,8 @@ static unsigned char wordbits[65536];
 #define MarginalDistrSNP_Y_DimensionX 4
 #define MarginalDistrSNP_Y_DimensionY 3
 
-
+#define THREAD_NUM 256
+#define BLOCK_NUM 10000
 
 static int popcount(uint64 i)
 {
@@ -45,5 +46,9 @@ private:
 	cudaDeviceProp* devPropArray;
 	int devCount;
 };
+
+extern "C" void cuda_GetInteractionPairs(vector<double>&InteractionMeasure, vector<pair<int, int>>& InteractionPair, uint64* genoCtrl_F, uint64* genoCtrl_M, uint64* genoCase_F, uint64* genoCase_M,
+	int nsnps, int nsamples, int* nlongintCase_Gender, int* pMarginalDistrSNP, int* pMarginalDistrSNP_Y,const unsigned char* wordbits, int wordBitCount);
+
 
 #endif
