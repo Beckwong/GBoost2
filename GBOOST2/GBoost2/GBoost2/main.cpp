@@ -193,6 +193,75 @@ void CalculateMarginalDistr(uint64* genoCtrl_F, uint64* genoCtrl_M, uint64* geno
 	}
 }
 
+void CalculateGenoJointDistr(uint64* genoCtrl_F, uint64* genoCtrl_M, uint64* genoCase_F, uint64* genoCase_M, int* nlongintCase_Gender,int nsnps, int *GenoDistr, int snp1, int snp2, int* pMarginalDistrSNP_Y)
+{
+	int i1, i2, i3;
+	register int count;
+
+	for (i1 = 0; i1 < 2; i1++)
+	{
+		for (i2 = 0; i2 < 2; i2++)
+		{
+			count = 0;
+			for (i3 = 0; i3 < nlongintCase_Gender[0]; i3++)
+			{
+				count += popcount(genoCtrl_F[i3*nsnps * 3 + i1*nsnps + snp1] & genoCtrl_F[i3 * 3 * nsnps + i2*nsnps + snp2]);
+			}
+			GenoDistr[i1 * 3 + i2] = count;
+
+			count = 0;
+			for (i3 = 0; i3 < nlongintCase_Gender[1]; i3++)
+			{
+				count += popcount(genoCtrl_M[i3*nsnps * 3 + i1*nsnps + snp1] & genoCtrl_M[i3 * 3 * nsnps + i2*nsnps + snp2]);
+			}
+			GenoDistr[9+i1*3+i2]=count;
+
+			count = 0;
+			for (i3 = 0; i3 < nlongintCase_Gender[2]; i3++)
+			{
+				count += popcount(genoCase_F[i3*nsnps * 3 + i1*nsnps + snp1] & genoCase_M[i3 * 3 * nsnps + i2*nsnps + snp2]);
+			}
+			GenoDistr[18 + i1 * 3 + i2] = count;
+			count = 0;
+			for (i3 = 0; i3 < nlongintCase_Gender[3]; i3++)
+			{
+				count += popcount(genoCase_M[i3*nsnps * 3 + i1*nsnps + snp1] & genoCase_M[i3 * 3 * nsnps + i2*nsnps + snp2]);
+			}
+			GenoDistr[27 + i1 * 3 + i2] = count;
+		}
+	}
+
+	GenoDistr[2] = pMarginalDistrSNP_Y[(0 * MarginalDistrSNP_Y_DimensionX + 0)*nsnps + snp1] - GenoDistr[0] - GenoDistr[1];
+	GenoDistr[5] = pMarginalDistrSNP_Y[(1 * MarginalDistrSNP_Y_DimensionX + 0)*nsnps + snp1] - GenoDistr[3] - GenoDistr[4];
+
+	GenoDistr[6] = pMarginalDistrSNP_Y[(0 * MarginalDistrSNP_Y_DimensionX + 0)*nsnps + snp2] - GenoDistr[0] - GenoDistr[3];
+	GenoDistr[7] = pMarginalDistrSNP_Y[(1 * MarginalDistrSNP_Y_DimensionX + 0)*nsnps + snp2] - GenoDistr[1] - GenoDistr[4];
+	GenoDistr[8] = pMarginalDistrSNP_Y[(2 * MarginalDistrSNP_Y_DimensionX + 0)*nsnps + snp2] - GenoDistr[2] - GenoDistr[5];
+
+	//control and male
+	GenoDistr[11] = pMarginalDistrSNP_Y[(0 * MarginalDistrSNP_Y_DimensionX + 1)*nsnps + snp1] - GenoDistr[9] - GenoDistr[10];
+	GenoDistr[14] = pMarginalDistrSNP_Y[(1 * MarginalDistrSNP_Y_DimensionX + 1)*nsnps + snp1] - GenoDistr[12] - GenoDistr[13];
+
+	GenoDistr[15] = pMarginalDistrSNP_Y[(0 * MarginalDistrSNP_Y_DimensionX + 1)*nsnps + snp2] - GenoDistr[9] - GenoDistr[12];
+	GenoDistr[16] = pMarginalDistrSNP_Y[(1 * MarginalDistrSNP_Y_DimensionX + 1)*nsnps + snp2] - GenoDistr[10] - GenoDistr[13];
+	GenoDistr[17] = pMarginalDistrSNP_Y[(2 * MarginalDistrSNP_Y_DimensionX + 1)*nsnps + snp2] - GenoDistr[11] - GenoDistr[14];
+
+	//case and female
+	GenoDistr[20] = pMarginalDistrSNP_Y[(0 * MarginalDistrSNP_Y_DimensionX + 2)*nsnps + snp1] - GenoDistr[18] - GenoDistr[19];
+	GenoDistr[23] = pMarginalDistrSNP_Y[(1 * MarginalDistrSNP_Y_DimensionX + 2)*nsnps + snp1] - GenoDistr[21] - GenoDistr[22];
+
+	GenoDistr[24] = pMarginalDistrSNP_Y[(0 * MarginalDistrSNP_Y_DimensionX + 2)*nsnps + snp2] - GenoDistr[18] - GenoDistr[21];
+	GenoDistr[25] = pMarginalDistrSNP_Y[(1 * MarginalDistrSNP_Y_DimensionX + 2)*nsnps + snp2] - GenoDistr[19] - GenoDistr[22];
+	GenoDistr[26] = pMarginalDistrSNP_Y[(2 * MarginalDistrSNP_Y_DimensionX + 2)*nsnps + snp2] - GenoDistr[20] - GenoDistr[23];
+
+	//case and male
+	GenoDistr[29] = pMarginalDistrSNP_Y[(0 * MarginalDistrSNP_Y_DimensionX + 3)*nsnps + snp1] - GenoDistr[27] - GenoDistr[28];
+	GenoDistr[32] = pMarginalDistrSNP_Y[(1 * MarginalDistrSNP_Y_DimensionX + 3)*nsnps + snp1] - GenoDistr[30] - GenoDistr[31];
+
+	GenoDistr[33] = pMarginalDistrSNP_Y[(0 * MarginalDistrSNP_Y_DimensionX + 3)*nsnps + snp2] - GenoDistr[27] - GenoDistr[30];
+	GenoDistr[34] = pMarginalDistrSNP_Y[(1 * MarginalDistrSNP_Y_DimensionX + 3)*nsnps + snp2] - GenoDistr[28] - GenoDistr[31];
+	GenoDistr[35] = pMarginalDistrSNP_Y[(2 * MarginalDistrSNP_Y_DimensionX + 3)*nsnps + snp2] - GenoDistr[29] - GenoDistr[32];
+}
 
 DeviceProperties::DeviceProperties() {
 	// Find the number of devices
@@ -487,10 +556,46 @@ int main()
 	time(&st);
 
 	GenoJointDistr = (int *)calloc(4 * 9, sizeof(int));
-	vector<double>InteractionMeasure;
-	vector<pair<int, int>>InteractionPair;
-	cuda_GetInteractionPairs(InteractionMeasure,InteractionPair,genoCtrl_F, genoCtrl_M, genoCase_F, genoCase_M, 
-							nsnps, nsamples, nlongintCase_Gender, pMarginalDistrSNP, pMarginalDistrSNP_Y, wordbits, 65536);
+	
+	list<int>offsetListJ1;
+	list<int>offsetListJ2;
+	list<int>::iterator iterJ1;
+	list<int>::iterator iterJ2;
+
+	vector<pair<int,int>>selectedpairs;
+	vector<double>selectedpairsMeasure;
+
+	static double mu[9][4] = { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
+	static double mu0[9][4] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+	static double mutmp[9][4];
+	static double mu0tmp[9][4];
+	double muError = 0;
+
+	cuda_GetInteractionPairs(genoCtrl_F, genoCtrl_M, genoCase_F, genoCase_M, 
+							nsnps, nsamples, nlongintCase_Gender, pMarginalDistrSNP, pMarginalDistrSNP_Y, wordbits, 65536,offsetListJ1,offsetListJ2);
+
+	printf("Number of SNPs pairs passed screening step: %d\n",offsetListJ1.size());
+
+	//test step post_correction
+	iterJ1 = offsetListJ1.begin();
+	iterJ2 = offsetListJ2.begin();
+
+	int passedCount = 0;
+	printf("\n Start post-correction...");
+	fflush(stdout);
+
+	for (int ii; ii < offsetListJ1.size(); ii++,iterJ1++,iterJ2++)
+	{
+		int snp1 = *iterJ1;
+		int snp2 = *iterJ2;
+
+		CalculateGenoJointDistr(genoCtrl_F, genoCtrl_M, genoCase_F, genoCase_M, nlongintCase_Gender, nsnps, GenoJointDistr, snp1, snp2, pMarginalDistrSNP_Y);
+
+		
+		
+
+	}
+		
 
 
 

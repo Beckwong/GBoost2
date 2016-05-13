@@ -24,4 +24,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
+  <ItemGroup>
+    <CudaCompile Include="boost_CUDA_kernel.cu">
+      <Filter>Source Files</Filter>
+    </CudaCompile>
+  </ItemGroup>
 </Project>

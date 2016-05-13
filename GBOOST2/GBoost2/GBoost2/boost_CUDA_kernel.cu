@@ -1,6 +1,9 @@
 #include<cuda_runtime.h>
 #include "main.h"
 #include "device_launch_parameters.h"
+
+using namespace std;
+
 texture<uint2, 1, cudaReadModeElementType> genoCtrl_F_Texture;
 texture<uint2, 1, cudaReadModeElementType> genoCtrl_M_Texture;
 texture<uint2, 1, cudaReadModeElementType> genoCase_F_Texture;
@@ -47,6 +50,7 @@ __global__ void Screening_kernel(uint64* genoCtrl_F, uint64* genoCtrl_M, uint64*
 
 	int count;
 	int localGenoDistr[36];
+	int Skt[4],Sk[2],St[2];
 	float tao = 0;
 	float InteractionMeasure = 0;
 	float ptmp1, ptmp2;
@@ -148,16 +152,78 @@ __global__ void Screening_kernel(uint64* genoCtrl_F, uint64* genoCtrl_M, uint64*
 	tao = 0;
 	InteractionMeasure = 0;
 
+	//calculate Pkt, Pk, Pt
+	for (int k = 0; k < 2; k++)
+	{
+		for (int t = 0; t < 2; t++)
+		{
+			int sumij = 0;
+			for (int i = 0; i < 3; i++)
+			{
+				for (int j = 0; j < 3; j++)
+				{
+					sumij += localGenoDistr[k * 18 + t * 9 + i * 3 + j];
+				}
+			}
+			Skt[k * 2 + t] = sumij;
 
+		}
+	}
+	Sk[0] = Skt[0] + Skt[1];
+	Sk[1] = Skt[2] + Skt[3];
+	St[0] = Skt[0] + Skt[2];
+	St[1] = Skt[1] + Skt[3];
 
+	//Pijkt = 1/tao*(Pik*Pjk*Pkt*Pijt)/(Pi*Pj*Pk*Pt)
+	//Pik = pMarginalDistrSNP_Y[(i * MarginalDistrSNP_Y_DimensionX + k*2)*nsnps + snp1] + pMarginalDistrSNP_Y[(i * MarginalDistrSNP_Y_DimensionX + k*2+1)*nsnps + snp1]
+	for (int i = 0; i < 3; i++)
+	{
+		for (int j = 0; j < 3; j++)
+		{
+			for (int k = 0; k < 2; k++)
+			{
+				for (int t = 0; t < 2; t++)
+				{
+					ptmp1 = (float)localGenoDistr[k * 18 + t * 9 + i * 3 + j] / nsamples;
+					if (ptmp1 > 0)
+					{
+						InteractionMeasure += ptmp1*log(ptmp1);
+					}
+		
+					ptmp2 = (float)(pMarginalDistrSNP_Y[(i * MarginalDistrSNP_Y_DimensionX + k * 2)*nsnps + snp1] + pMarginalDistrSNP_Y[(i * MarginalDistrSNP_Y_DimensionX + k * 2 + 1)*nsnps + snp1])*
+						(pMarginalDistrSNP_Y[(j * MarginalDistrSNP_Y_DimensionX + k * 2)*nsnps + snp2] + pMarginalDistrSNP_Y[(j * MarginalDistrSNP_Y_DimensionX + k * 2 + 1)*nsnps + snp2])
+						*Skt[k * 2 + t] * (localGenoDistr[18 + t * 9 + i * 3 + j] + localGenoDistr[t * 9 + i * 3 + j]) 
+						/ (pMarginalDistrSNP[i*nsnps + snp1] * pMarginalDistrSNP[j*nsnps + snp2] * Sk[k] * St[t]);
+
+					if (ptmp2 > 0)
+					{
+						InteractionMeasure += -ptmp1*log(ptmp2);
+						tao += ptmp2;
+					}
+				}
+			}
+		}
+	}
+
+	InteractionMeasure = (InteractionMeasure + log(tao))*nsamples * 2;
+	if (InteractionMeasure > 60)
+	{
+		interactionPairOffsetJ1[outIndex] = snp1;
+		interactionPairOffsetJ2[outIndex] = snp2;
+	}
+	else
+	{
+		interactionPairOffsetJ1[outIndex] = -1;
+		interactionPairOffsetJ2[outIndex] = -1;
+	}
 }
 
 
 
 
 
-extern "C" void cuda_GetInteractionPairs(vector<double>&InteractionMeasure, vector<pair<int, int>>& InteractionPair, uint64* genoCtrl_F, uint64* genoCtrl_M, uint64* genoCase_F, uint64* genoCase_M,
-	int nsnps, int nsamples, int* nlongintCase_Gender, int* pMarginalDistrSNP, int* pMarginalDistrSNP_Y, const unsigned char* wordbits, int wordBitCount)
+extern "C" void cuda_GetInteractionPairs(uint64* genoCtrl_F, uint64* genoCtrl_M, uint64* genoCase_F, uint64* genoCase_M,int nsnps, int nsamples, int* nlongintCase_Gender, 
+										int* pMarginalDistrSNP, int* pMarginalDistrSNP_Y, const unsigned char* wordbits, int wordBitCount,list<int>& offsetListJ1,list<int>& offsetListJ2)
 {
 	printf("\nStarting screening ...\n");
 	float timeInMs;
@@ -280,12 +346,78 @@ extern "C" void cuda_GetInteractionPairs(vector<double>&InteractionMeasure, vect
 		cudaMemset(gpu_InteractionPairOffsetJ1, 0, sizeof(int)*blockNum*threadNum);
 		cudaMemset(gpu_InteractionPairOffsetJ2, 0, sizeof(int)*blockNum*threadNum);
 
+		Screening_kernel <<<grids, threads>>>(gpu_genoCtrl_F,gpu_genoCtrl_M,gpu_genoCase_F,gpu_genoCase_M,nsnps,nsamples,
+			nlongintCase_Gender[0],nlongintCase_Gender[1],nlongintCase_Gender[2],nlongintCase_Gender[3],gpu_inputOffsetJ1,gpu_inputOffsetJ2,gpu_InteractionPairOffsetJ1,gpu_InteractionPairOffsetJ2,
+			gpu_pMarginalDistrSNP,gpu_pMarginalDistrSNP_Y,gpu_wordBits);
 
+		if (i == totalNumberOfGridBlock)
+		{
+			// read back data from gpu
+			cudaMemcpy(interactionPairOffsetJ1, gpu_InteractionPairOffsetJ1, sizeof(int)*((totaltasks % (blockNum*threadNum))), cudaMemcpyDeviceToHost);
+			cudaMemcpy(interactionPairOffsetJ2, gpu_InteractionPairOffsetJ2, sizeof(int)*((totaltasks % (blockNum*threadNum))), cudaMemcpyDeviceToHost);
+
+			for (int j = 0; j < totaltasks % (blockNum*threadNum); j++) {
+				if (interactionPairOffsetJ1[j] != -1 && interactionPairOffsetJ2[j] != -1) {
+					offsetListJ1.push_back(interactionPairOffsetJ1[j]);
+					offsetListJ2.push_back(interactionPairOffsetJ2[j]);
+				}
+			}
+		}
+		else
+		{
+			cudaMemcpy(interactionPairOffsetJ1, gpu_InteractionPairOffsetJ1, sizeof(int)*((totaltasks % (blockNum*threadNum))), cudaMemcpyDeviceToHost);
+			cudaMemcpy(interactionPairOffsetJ2, gpu_InteractionPairOffsetJ2, sizeof(int)*((totaltasks % (blockNum*threadNum))), cudaMemcpyDeviceToHost);
+			
+			for (int j = 0; j < blockNum*threadNum; j++) {
+				if (interactionPairOffsetJ1[j] != -1 && interactionPairOffsetJ2[j] != -1) {
+					offsetListJ1.push_back(interactionPairOffsetJ1[j]);
+					offsetListJ2.push_back(interactionPairOffsetJ2[j]);
+				}
+			}
+		}
+		checkCUDAError("Kernel Error");
 	}
 
+	printf("\rProgress: %d\n", 100);
 
 
+	cudaUnbindTexture(genoCtrl_F_Texture);
+	cudaUnbindTexture(genoCtrl_M_Texture);
+	cudaUnbindTexture(genoCase_F_Texture);
+	cudaUnbindTexture(genoCase_M_Texture);
+	cudaUnbindTexture(wordbits_Texture);
 
+	cudaFree(gpu_wordBits);
+	cudaFree(gpu_genoCtrl_F);
+	cudaFree(gpu_genoCtrl_M);
+	cudaFree(gpu_genoCase_F);
+	cudaFree(gpu_genoCase_M);
+
+	cudaFree(gpu_pMarginalDistrSNP);
+	cudaFree(gpu_pMarginalDistrSNP_Y);
+	cudaFree(gpu_InteractionPairOffsetJ1);
+	cudaFree(gpu_InteractionPairOffsetJ2);
+
+	// free host memory
+	cudaFreeHost(interactionInputOffsetJ1);
+	cudaFreeHost(interactionInputOffsetJ2);
+
+	//cudaFree(gpu_inputOffsetJ1);
+	//cudaFree(gpu_inputOffsetJ2);
+
+	cudaEventRecord(evStop, 0);
+	cudaEventSynchronize(evStop);
+
+	cudaEventElapsedTime(&timeInMs, evStart, evStop);
+	//printf("i %d, GPU Time = %fms\n", i, timeInMs);
+	printf("GPU Time = %fms\n", timeInMs);
+
+	cudaEventDestroy(evStart);
+	cudaEventDestroy(evStop);
+
+	// free normal host allocation memory
+	free(interactionPairOffsetJ1);
+	free(interactionPairOffsetJ2);
 
 
 

@@ -11,6 +11,7 @@
 #include<cuda_runtime.h>
 #include<string>
 #include<fstream>
+#include<list>
 using namespace std;
 
 typedef long long int64;
@@ -47,8 +48,8 @@ private:
 	int devCount;
 };
 
-extern "C" void cuda_GetInteractionPairs(vector<double>&InteractionMeasure, vector<pair<int, int>>& InteractionPair, uint64* genoCtrl_F, uint64* genoCtrl_M, uint64* genoCase_F, uint64* genoCase_M,
-	int nsnps, int nsamples, int* nlongintCase_Gender, int* pMarginalDistrSNP, int* pMarginalDistrSNP_Y,const unsigned char* wordbits, int wordBitCount);
+extern "C" void cuda_GetInteractionPairs(uint64* genoCtrl_F, uint64* genoCtrl_M, uint64* genoCase_F, uint64* genoCase_M,
+	int nsnps, int nsamples, int* nlongintCase_Gender, int* pMarginalDistrSNP, int* pMarginalDistrSNP_Y, const unsigned char* wordbits, int wordBitCount, list<int>& offsetListJ1, list<int>& offsetListJ2);
 
 
 #endif

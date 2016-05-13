@@ -70,6 +70,9 @@
   <ItemGroup>
     <ClInclude Include="main.h" />
   </ItemGroup>
+  <ItemGroup>
+    <CudaCompile Include="boost_CUDA_kernel.cu" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
     <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 7.5.targets" />
