@@ -1,0 +1,14 @@
+No.0Pair: 0 and 1 Interaction: 51.8757
+No.1Pair: 3 and 591 Interaction: 106.33
+No.2Pair: 30 and 58 Interaction: 49.8686
+No.3Pair: 46 and 869 Interaction: 48.6418
+No.4Pair: 56 and 229 Interaction: 40.4477
+No.5Pair: 64 and 180 Interaction: 77.9209
+No.6Pair: 64 and 658 Interaction: 64.2576
+No.7Pair: 274 and 417 Interaction: 33.2857
+No.8Pair: 289 and 664 Interaction: 36.5641
+No.9Pair: 337 and 496 Interaction: 40.86
+No.10Pair: 349 and 686 Interaction: 69.3717
+No.11Pair: 379 and 837 Interaction: 37.0291
+No.12Pair: 381 and 489 Interaction: 65.6989
+No.13Pair: 538 and 731 Interaction: 32.5108

@@ -1,6 +1,6 @@
 #include "main.h"
-
-
+#include<iostream>
+using namespace std;
 int bitCount(uint64 i)
 {
 	i = i - ((i >> 1) & 0x5555555555555555);
@@ -105,7 +105,7 @@ int GetDataSize(char *filename, int  **DataSize)
 		time(&ed);
 
 		(*DataSize)[ndataset * 0 + ii - 1] = nsamples;
-		(*DataSize)[ndataset * 1 + ii - 1] = nsnps - 1;
+		(*DataSize)[ndataset * 1 + ii - 1] = nsnps - 2;
 
 	}
 
@@ -180,9 +180,9 @@ void CalculateMarginalDistr(uint64* genoCtrl_F, uint64* genoCtrl_M, uint64* geno
 			count = 0;
 			for (int i3 = 0; i3 < nlongintCase_Gender[3]; i3++)
 			{
-				count += bitCount(genoCase_F[i3 * 3 * nsnps + i2*nsnps + i1]);
+				count += bitCount(genoCase_M[i3 * 3 * nsnps + i2*nsnps + i1]);
 			}
-			pMarginalDistrSNP_Y[(i2*MarginalDistrSNP_Y_DimensionX + 2)*nsnps + i1] = count;
+			pMarginalDistrSNP_Y[(i2*MarginalDistrSNP_Y_DimensionX + 3)*nsnps + i1] = count;
 
 			pMarginalDistrSNP[i2*nsnps+i1] = 
 				pMarginalDistrSNP_Y[(i2*MarginalDistrSNP_Y_DimensionX + 0)*nsnps + i1] +
@@ -263,6 +263,360 @@ void CalculateGenoJointDistr(uint64* genoCtrl_F, uint64* genoCtrl_M, uint64* gen
 	GenoDistr[35] = pMarginalDistrSNP_Y[(2 * MarginalDistrSNP_Y_DimensionX + 3)*nsnps + snp2] - GenoDistr[29] - GenoDistr[32];
 }
 
+double PostCorrection(int* GenoJointDistr, int nsamples, bool flag)
+{
+	vector<double>mu(36, 1);
+	vector<double>mu0(36, 0);
+	vector<double>mu_ij(9, 0);
+	vector<double>mu_ik(6, 0);
+	vector<double>mu_jk(6, 0);
+	vector<double>mu_kt(4, 0);
+	vector<double>mu_it(6, 0);
+	vector<double>mu_jt(6, 0);
+	vector<double>mu_ijk(18, 0);
+	vector<double>mu_ijt(18, 0);
+
+	vector<double>n_ij(9, 0);
+	vector<double>n_ik(6, 0);
+	vector<double>n_jk(6, 0);
+	vector<double>n_it(6, 0);
+	vector<double>n_jt(6, 0);
+	vector<double>n_kt(4, 0);
+	vector<double>n_ijk(18, 0);
+	vector<double>n_ijt(18, 0);
+
+	double muError = 0.0;
+	double tao = 0;
+	double InteractionMeasure = 0.0;
+	double ptmp1 = 0, ptmp2 = 0;
+
+	for (int index = 0; index<36; index++)
+	{
+		muError += abs(mu[index] - mu0[index]);
+	}
+
+	while (muError>0.001)
+	{
+		for (int i = 0; i<36; i++)
+		{
+			mu0[i] = mu[i];
+		}
+
+		//step1: mu_ij and n_ij
+		for (int i = 0; i<9; i++)
+		{
+			mu_ij[i] = 0;
+			n_ij[i] = 0;
+		}
+		for (int i = 0; i<3; i++)
+		{
+			for (int j = 0; j<3; j++)
+			{
+				for (int k = 0; k<2; k++)
+				{
+					for (int t = 0; t<2; t++)
+					{
+						n_ij[i * 3 + j] += GenoJointDistr[k*18+t*9+i*3+j];
+						mu_ij[i * 3 + j] += mu[i * 12 + j * 4 + k * 2 + t];
+					}
+				}
+			}
+		}
+		//mu_ijkt = mu_ijkt*n_ij/mu_ij
+		for (int i = 0; i<3; i++)
+		{
+			for (int j = 0; j<3; j++)
+			{
+				for (int k = 0; k<2; k++)
+				{
+					for (int t = 0; t<2; t++)
+					{
+						if (mu_ij[i * 3 + j]>0)
+						{
+							mu[i * 12 + j * 4 + k * 2 + t] = mu[i * 12 + j * 4 + k * 2 + t] * n_ij[i * 3 + j] / mu_ij[i * 3 + j];
+						}
+						else
+						{
+							mu[i * 12 + j * 4 + k * 2 + t] = 0;
+						}
+					}
+				}
+			}
+		}
+
+		//step2: mu_ik and n_ik
+		for (int i = 0; i<6; i++)
+		{
+			mu_ik[i] = 0;
+			n_ik[i] = 0;
+		}
+		for (int i = 0; i<3; i++)
+		{
+			for (int k = 0; k<2; k++)
+			{
+				for (int j = 0; j<3; j++)
+				{
+					for (int t = 0; t<2; t++)
+					{
+						mu_ik[i * 2 + k] += mu[i * 12 + j * 4 + k * 2 + t];
+						n_ik[i * 2 + k] += GenoJointDistr[k * 18 + t * 9 + i * 3 + j];
+					}
+				}
+			}
+		}
+
+		//mu_ijkt=mu_ijkt*n_ik/mu_ik
+
+		for (int i = 0; i<3; i++)
+		{
+			for (int j = 0; j<3; j++)
+			{
+				for (int k = 0; k<2; k++)
+				{
+					for (int t = 0; t<2; t++)
+					{
+						if (mu_ik[i * 2 + k]>0)
+							mu[i * 12 + j * 4 + k * 2 + t] = mu[i * 12 + j * 4 + k * 2 + t] * n_ik[i * 2 + k] / mu_ik[i * 2 + k];
+						else
+							mu[i * 12 + j * 4 + k * 2 + t] = 0;
+					}
+				}
+			}
+		}
+
+		//step3:mu_jk and n_jk
+		for (int i = 0; i<6; i++)
+		{
+			mu_jk[i] = 0;
+			n_jk[i] = 0;
+		}
+		for (int j = 0; j<3; j++)
+		{
+			for (int k = 0; k<2; k++)
+			{
+				for (int i = 0; i<3; i++)
+				{
+					for (int t = 0; t<2; t++)
+					{
+						mu_jk[j * 2 + k] += mu[i * 12 + j * 4 + k * 2 + t];
+						n_jk[j * 2 + k] += GenoJointDistr[k * 18 + t * 9 + i * 3 + j];
+					}
+				}
+			}
+		}
+
+		//mu_ijkt = mu_ijkt*n_jk/mu_jk
+		for (int i = 0; i<3; i++)
+		{
+			for (int j = 0; j<3; j++)
+			{
+				for (int k = 0; k<2; k++)
+				{
+					for (int t = 0; t<2; t++)
+					{
+						if (mu_jk[j * 2 + k]>0)
+							mu[i * 12 + j * 4 + k * 2 + t] = mu[i * 12 + j * 4 + k * 2 + t] * n_jk[j * 2 + k] / mu_jk[j * 2 + k];
+						else
+							mu[i * 12 + j * 4 + k * 2 + t] = 0;
+					}
+				}
+			}
+		}
+
+		//step4: mu_kt and n_kt
+		for (int i = 0; i<4; i++)
+		{
+			mu_kt[i] = 0;
+			n_kt[i] = 0;
+		}
+		for (int k = 0; k<2; k++)
+		{
+			for (int t = 0; t<2; t++)
+			{
+				for (int i = 0; i<3; i++)
+				{
+					for (int j = 0; j<3; j++)
+					{
+						mu_kt[k * 2 + t] += mu[i * 12 + j * 4 + k * 2 + t];
+						n_kt[k * 2 + t] += GenoJointDistr[k * 18 + t * 9 + i * 3 + j];
+					}
+				}
+			}
+		}
+
+		//mu_ijkt = mu_ijkt*n_kt/mu_kt
+		for (int i = 0; i<3; i++)
+		{
+			for (int j = 0; j<3; j++)
+			{
+				for (int k = 0; k<2; k++)
+				{
+					for (int t = 0; t<2; t++)
+					{
+						if (mu_kt[k * 2 + t]>0)
+							mu[i * 12 + j * 4 + k * 2 + t] = mu[i * 12 + j * 4 + k * 2 + t] * n_kt[k * 2 + t] / mu_kt[k * 2 + t];
+						else
+							mu[i * 12 + j * 4 + k * 2 + t] = 0;
+					}
+				}
+			}
+		}
+
+		//step 5 u_it and n_it
+		for (int index = 0; index<6; index++)
+		{
+			mu_it[index] = 0;
+			n_it[index] = 0;
+		}
+		for (int i = 0; i<3; i++)
+		{
+			for (int t = 0; t<2; t++)
+			{
+				for (int j = 0; j<3; j++)
+				{
+					for (int k = 0; k<2; k++)
+					{
+						mu_it[i * 2 + t] += mu[i * 12 + j * 4 + k * 2 + t];
+						n_it[i * 2 + t] += GenoJointDistr[k * 18 + t * 9 + i * 3 + j];
+					}
+				}
+			}
+		}
+		for (int i = 0; i<3; i++)
+		{
+			for (int j = 0; j<3; j++)
+			{
+				for (int k = 0; k<2; k++)
+				{
+					for (int t = 0; t<2; t++)
+					{
+						if (mu_it[i * 2 + t]>0)
+							mu[i * 12 + j * 4 + k * 2 + t] = mu[i * 12 + j * 4 + k * 2 + t] * n_it[i * 2 + t] / mu_it[i * 2 + t];
+						else
+							mu[i * 12 + j * 4 + k * 2 + t] = 0;
+					}
+				}
+			}
+		}
+
+		//step 6 u_jt and n_jt
+		for (int index = 0; index<6; index++)
+		{
+			mu_jt[index] = 0;
+			n_jt[index] = 0;
+		}
+		for (int j = 0; j<3; j++)
+		{
+			for (int t = 0; t<2; t++)
+			{
+				for (int i = 0; i<3; i++)
+				{
+					for (int k = 0; k<2; k++)
+					{
+						mu_jt[j * 2 + t] += mu[i * 12 + j * 4 + k * 2 + t];
+						n_jt[j * 2 + t] += GenoJointDistr[k * 18 + t * 9 + i * 3 + j];
+					}
+				}
+			}
+		}
+		for (int i = 0; i<3; i++)
+		{
+			for (int j = 0; j<3; j++)
+			{
+				for (int k = 0; k<2; k++)
+				{
+					for (int t = 0; t<2; t++)
+					{
+						if (mu_jt[j * 2 + t]>0)
+							mu[i * 12 + j * 4 + k * 2 + t] = mu[i * 12 + j * 4 + k * 2 + t] * n_jt[j * 2 + t] / mu_jt[j * 2 + t];
+						else
+							mu[i * 12 + j * 4 + k * 2 + t] = 0;
+					}
+				}
+			}
+		}
+
+		//step7 mu_ijkt = mu_ijt/mu_ijt;
+
+
+
+		//step8: for association detection
+		//mu_ijkt = mu_ijkt*n_ijk/mu_ijk
+		if (flag)
+		{
+			for (int i = 0; i<18; i++)
+			{
+				mu_ijk[i] = 0;
+				n_ijk[i] = 0;
+			}
+
+			for (int i = 0; i<3; i++)
+			{
+				for (int j = 0; j<3; j++)
+				{
+					for (int k = 0; k<2; k++)
+					{
+						for (int t = 0; t<2; t++)
+						{
+							mu_ijk[i * 6 + j * 2 + k] += mu[i * 12 + j * 4 + k * 2 + t];
+							n_ijk[i * 6 + j * 2 + k] += GenoJointDistr[k * 18 + t * 9 + i * 3 + j];
+						}
+					}
+				}
+			}
+
+			for (int i = 0; i<3; i++)
+			{
+				for (int j = 0; j<3; j++)
+				{
+					for (int k = 0; k<2; k++)
+					{
+						for (int t = 0; t<2; t++)
+						{
+							if (mu_ijk[i * 6 + j * 2 + k]>0)
+								mu[i * 12 + j * 4 + k * 2 + t] = mu[i * 12 + j * 4 + k * 2 + t] * n_ijk[i * 6 + j * 2 + k] / mu_ijk[i * 6 + j * 2 + k];
+							else
+								mu[i * 12 + j * 4 + k * 2 + t] = 0;
+						}
+					}
+				}
+			}
+		}
+
+		muError = 0.0;
+		for (int index = 0; index<36; index++)
+		{
+			muError += abs(mu[index] - mu0[index]);
+		}
+
+
+
+	}
+
+	double Likelihood = 0;
+	double tmp = 0;
+	for (int i = 0; i<3; i++)
+	{
+		for (int j = 0; j<3; j++)
+		{
+			for (int k = 0; k<2; k++)
+			{
+				for (int t = 0; t<2; t++)
+				{
+					tmp = GenoJointDistr[k * 18 + t * 9 + i * 3 + j];
+					if (mu[i * 12 + j * 4 + k * 2 + t]>0)
+					{
+						Likelihood += tmp*log(mu[i * 12 + j * 4 + k * 2 + t]);
+					}
+				}
+			}
+		}
+	}
+
+	return Likelihood;
+}
+
+
 DeviceProperties::DeviceProperties() {
 	// Find the number of devices
 	cudaGetDeviceCount(&devCount);
@@ -320,7 +674,8 @@ void DeviceProperties::printDevProp(int i)
 
 int main()
 {
-	time_t st, ed;
+	time_t st, ed,totalst,totalend;
+	
 	int *pMarginalDistrSNP;
 	int *pMarginalDistrSNP_Y; 
 
@@ -343,8 +698,9 @@ int main()
 	char filename_i[100];
 	char *inputfilename = "filenamelist.txt";
 	uint64 *genoCtrl_F, *genoCtrl_M, *genoCase_F, *genoCase_M;
-	
+	ofstream fout;
 
+	time(&totalst);
 	if (initCUDA() == -1)
 	{
 		printf("Unable to initialize CUDA\n");
@@ -410,7 +766,7 @@ int main()
 		{
 			fscanf(fp_i, "%d", &itmp);
 			col++;
-			if (col == (DataSize[ndataset] + 1))
+			if (col == (DataSize[ndataset] + 2))
 			{
 				col = 0;
 				row++;
@@ -440,7 +796,7 @@ int main()
 	cudaDeviceProp prop;
 	cudaGetDeviceProperties(&prop, 0);
 	if (!prop.canMapHostMemory) {
-		printf("No map memory support");
+		printf("No map memory support\n");
 		exit(1);
 	}
 
@@ -505,23 +861,23 @@ int main()
 				fscanf(fp_i, "%d", &tmp);
 				if ((ipheno == 0) && (igender == 0))
 				{
-					genoCtrl_F[((iCtrl_F / LengthLongType) * 3 + tmp)*nsnps + (col + k - 1)] |= (mask1 << (iCtrl_F%LengthLongType));
+					genoCtrl_F[((iCtrl_F / LengthLongType) * 3 + tmp)*nsnps + (col + k - 2)] |= (mask1 << (iCtrl_F%LengthLongType));
 				}
 				else if ((ipheno == 0) && (igender == 1))
 				{
-					genoCtrl_M[((iCtrl_M / LengthLongType) * 3 + tmp)*nsnps + (col + k - 1)] |= (mask1 << (iCtrl_M%LengthLongType));
+					genoCtrl_M[((iCtrl_M / LengthLongType) * 3 + tmp)*nsnps + (col + k - 2)] |= (mask1 << (iCtrl_M%LengthLongType));
 				}
 				else if ((ipheno == 1) && (igender == 0))
 				{
-					genoCase_F[((iCase_F / LengthLongType) * 3 + tmp)*nsnps + (col + k - 1)] |= (mask1 << (iCase_F%LengthLongType));
+					genoCase_F[((iCase_F / LengthLongType) * 3 + tmp)*nsnps + (col + k - 2)] |= (mask1 << (iCase_F%LengthLongType));
 				}
 				else
 				{
-					genoCase_M[((iCase_M / LengthLongType) * 3 + tmp)*nsnps + (col + k - 1)] |= (mask1 << (iCase_M%LengthLongType));
+					genoCase_M[((iCase_M / LengthLongType) * 3 + tmp)*nsnps + (col + k - 2)] |= (mask1 << (iCase_M%LengthLongType));
 				}
 				col++;
 
-				if (col == DataSize[ndataset + ii - 1] + 1)
+				if (col == DataSize[ndataset + ii - 1] + 2)
 				{
 					col = 0;
 					row++;
@@ -541,7 +897,7 @@ int main()
 
 	fclose(fp);
 	time(&ed);
-	printf("cputime used for loading data: %d seconds", (int)ed - st);
+	printf("cputime used for loading data: %d seconds\n", (int)ed - st);
 
 	fflush(stdout);
 	free(DataSize);
@@ -552,7 +908,7 @@ int main()
 	pMarginalDistrSNP = (int *)malloc(MarginalDistrSNP_Y_DimensionY*nsnps*sizeof(int));
 	pMarginalDistrSNP_Y = (int *)malloc(MarginalDistrSNP_Y_DimensionX*MarginalDistrSNP_Y_DimensionY*nsnps*sizeof(int));
 	CalculateMarginalDistr(genoCtrl_F, genoCtrl_M, genoCase_F, genoCase_M, nlongintCase_Gender, nsnps, nsamples, pMarginalDistrSNP, pMarginalDistrSNP_Y);
-
+	
 	time(&st);
 
 	GenoJointDistr = (int *)calloc(4 * 9, sizeof(int));
@@ -565,44 +921,68 @@ int main()
 	vector<pair<int,int>>selectedpairs;
 	vector<double>selectedpairsMeasure;
 
-	static double mu[9][4] = { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
-	static double mu0[9][4] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-	static double mutmp[9][4];
-	static double mu0tmp[9][4];
-	double muError = 0;
-
 	cuda_GetInteractionPairs(genoCtrl_F, genoCtrl_M, genoCase_F, genoCase_M, 
 							nsnps, nsamples, nlongintCase_Gender, pMarginalDistrSNP, pMarginalDistrSNP_Y, wordbits, 65536,offsetListJ1,offsetListJ2);
 
 	printf("Number of SNPs pairs passed screening step: %d\n",offsetListJ1.size());
+	time(&ed);
+	printf("GPU time used in screening step: \n",int (ed-st));
+	fflush(stdout);
+
+
 
 	//test step post_correction
 	iterJ1 = offsetListJ1.begin();
 	iterJ2 = offsetListJ2.begin();
 
 	int passedCount = 0;
-	printf("\n Start post-correction...");
+	double InteractionMeasure;
+
+	time(&st);
+	printf("\n Start post-correction...\n");
 	fflush(stdout);
 
-	for (int ii; ii < offsetListJ1.size(); ii++,iterJ1++,iterJ2++)
+	for (int ii=0; ii < offsetListJ1.size(); ii++,iterJ1++,iterJ2++)
 	{
 		int snp1 = *iterJ1;
 		int snp2 = *iterJ2;
 
 		CalculateGenoJointDistr(genoCtrl_F, genoCtrl_M, genoCase_F, genoCase_M, nlongintCase_Gender, nsnps, GenoJointDistr, snp1, snp2, pMarginalDistrSNP_Y);
-
-		
-		
-
+		InteractionMeasure = 2*(PostCorrection(GenoJointDistr, nsamples, 1) - PostCorrection(GenoJointDistr, nsamples, 0));
+		if (InteractionMeasure > 30)
+		{
+			selectedpairs.push_back(make_pair(snp1, snp2));
+			selectedpairsMeasure.push_back(InteractionMeasure);
+		}
 	}
+
+	fout.open("InteractionRecord.txt", 'w');
+	for (int i = 0; i < selectedpairsMeasure.size(); i++)
+	{
+		fout << "No." << i << "Pair: " << selectedpairs[i].first << " and " << selectedpairs[i].second << " Interaction: " << selectedpairsMeasure[i] << endl;
+	}
+	fout.close();
 		
+	time(&ed);
+	printf("Cpu time used in post-correction: \n", (int)(ed - st));
+
+	
 
 
+	//free memory
 
+	free(pMarginalDistrSNP);
+	free(pMarginalDistrSNP_Y);
+	free(nCase_Gender);
+	free(nlongintCase_Gender);
+	free(GenoJointDistr);
+	free(genoCtrl_F);
+	free(genoCtrl_M);
+	free(genoCase_F);
+	free(genoCase_M);
 
-
-
-
+	time(&totalend);
+	printf("Total time used: \n", int(totalend - totalst));
 
 
 }

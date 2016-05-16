@@ -55,7 +55,7 @@ __global__ void Screening_kernel(uint64* genoCtrl_F, uint64* genoCtrl_M, uint64*
 	float InteractionMeasure = 0;
 	float ptmp1, ptmp2;
 
-	if ((snp1 >= snp2) || (snp1 >= nsnps - 1) || (snp2 >= nsnps))
+	if ((snp1 >= snp2) || (snp1 >= nsnps - 1) || (snp2 >= nsnps)||(snp1<0)||(snp2<0))
 	{
 		return;
 	}
@@ -79,7 +79,7 @@ __global__ void Screening_kernel(uint64* genoCtrl_F, uint64* genoCtrl_M, uint64*
 		for (int j = 0; j < 2; j++)
 		{
 			count = 0;
-			for (int k = 0; k < nlongintCase_M; k++)
+			for (int k = 0; k < nlongintCtrl_M; k++)
 			{
 				andResult = genoCtrl_M[k * 3 * nsnps + i*nsnps + snp1] & genoCtrl_M[k * 3 * nsnps + j*nsnps + snp2];
 				count += dev_count_bit(andResult);
@@ -189,12 +189,17 @@ __global__ void Screening_kernel(uint64* genoCtrl_F, uint64* genoCtrl_M, uint64*
 					{
 						InteractionMeasure += ptmp1*log(ptmp1);
 					}
-		
-					ptmp2 = (float)(pMarginalDistrSNP_Y[(i * MarginalDistrSNP_Y_DimensionX + k * 2)*nsnps + snp1] + pMarginalDistrSNP_Y[(i * MarginalDistrSNP_Y_DimensionX + k * 2 + 1)*nsnps + snp1])*
-						(pMarginalDistrSNP_Y[(j * MarginalDistrSNP_Y_DimensionX + k * 2)*nsnps + snp2] + pMarginalDistrSNP_Y[(j * MarginalDistrSNP_Y_DimensionX + k * 2 + 1)*nsnps + snp2])
-						*Skt[k * 2 + t] * (localGenoDistr[18 + t * 9 + i * 3 + j] + localGenoDistr[t * 9 + i * 3 + j]) 
-						/ (pMarginalDistrSNP[i*nsnps + snp1] * pMarginalDistrSNP[j*nsnps + snp2] * Sk[k] * St[t]);
-
+					if ((pMarginalDistrSNP[i*nsnps + snp1]>0) && (pMarginalDistrSNP[j*nsnps + snp2]>0) * (Sk[k]>0) * (St[t] > 0))
+					{
+						ptmp2 = (float)(pMarginalDistrSNP_Y[(i * MarginalDistrSNP_Y_DimensionX + k * 2)*nsnps + snp1] + pMarginalDistrSNP_Y[(i * MarginalDistrSNP_Y_DimensionX + k * 2 + 1)*nsnps + snp1])*
+							(pMarginalDistrSNP_Y[(j * MarginalDistrSNP_Y_DimensionX + k * 2)*nsnps + snp2] + pMarginalDistrSNP_Y[(j * MarginalDistrSNP_Y_DimensionX + k * 2 + 1)*nsnps + snp2])
+							*Skt[k * 2 + t] * (localGenoDistr[18 + t * 9 + i * 3 + j] + localGenoDistr[t * 9 + i * 3 + j])
+							/ ((float)pMarginalDistrSNP[i*nsnps + snp1] * pMarginalDistrSNP[j*nsnps + snp2] * Sk[k] * St[t]);
+					}
+					else
+					{
+						ptmp2 = 0;
+					}
 					if (ptmp2 > 0)
 					{
 						InteractionMeasure += -ptmp1*log(ptmp2);
@@ -206,15 +211,15 @@ __global__ void Screening_kernel(uint64* genoCtrl_F, uint64* genoCtrl_M, uint64*
 	}
 
 	InteractionMeasure = (InteractionMeasure + log(tao))*nsamples * 2;
-	if (InteractionMeasure > 60)
+	if (InteractionMeasure > 40)
 	{
 		interactionPairOffsetJ1[outIndex] = snp1;
 		interactionPairOffsetJ2[outIndex] = snp2;
 	}
 	else
 	{
-		interactionPairOffsetJ1[outIndex] = -1;
-		interactionPairOffsetJ2[outIndex] = -1;
+		interactionPairOffsetJ1[outIndex] = 0;
+		interactionPairOffsetJ2[outIndex] = 0;
 	}
 }
 
@@ -304,7 +309,7 @@ extern "C" void cuda_GetInteractionPairs(uint64* genoCtrl_F, uint64* genoCtrl_M,
 	cudaBindTexture(0, genoCase_M_Texture, gpu_genoCase_M, sizeof(uint64)*nlongintCase_Gender[3] * 3 * nsnps);
 
 
-	for (int i = 0, offset = 0; i <= totalNumberOfGridBlock; i++, offset = offset + blockNum*threadNum)
+	for (int i = 1, offset = 0; i <= totalNumberOfGridBlock; i++, offset = offset + blockNum*threadNum)
 	{
 		if (i % 100 == 0)
 		{
@@ -357,11 +362,14 @@ extern "C" void cuda_GetInteractionPairs(uint64* genoCtrl_F, uint64* genoCtrl_M,
 			cudaMemcpy(interactionPairOffsetJ2, gpu_InteractionPairOffsetJ2, sizeof(int)*((totaltasks % (blockNum*threadNum))), cudaMemcpyDeviceToHost);
 
 			for (int j = 0; j < totaltasks % (blockNum*threadNum); j++) {
-				if (interactionPairOffsetJ1[j] != -1 && interactionPairOffsetJ2[j] != -1) {
+				if (interactionPairOffsetJ1[j] != 0 || interactionPairOffsetJ2[j] != 0) {
 					offsetListJ1.push_back(interactionPairOffsetJ1[j]);
 					offsetListJ2.push_back(interactionPairOffsetJ2[j]);
 				}
 			}
+			printf("\nSize of offsetList: %d\n", offsetListJ1.size());
+			printf("\nTotal tasks: %d\n", totaltasks);
+			fflush(stdout);
 		}
 		else
 		{
@@ -369,7 +377,7 @@ extern "C" void cuda_GetInteractionPairs(uint64* genoCtrl_F, uint64* genoCtrl_M,
 			cudaMemcpy(interactionPairOffsetJ2, gpu_InteractionPairOffsetJ2, sizeof(int)*((totaltasks % (blockNum*threadNum))), cudaMemcpyDeviceToHost);
 			
 			for (int j = 0; j < blockNum*threadNum; j++) {
-				if (interactionPairOffsetJ1[j] != -1 && interactionPairOffsetJ2[j] != -1) {
+				if (interactionPairOffsetJ1[j] != 0 && interactionPairOffsetJ2[j] != 0) {
 					offsetListJ1.push_back(interactionPairOffsetJ1[j]);
 					offsetListJ2.push_back(interactionPairOffsetJ2[j]);
 				}
