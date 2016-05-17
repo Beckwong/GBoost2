@@ -1,16 +1,10 @@
-﻿Build started 5/16/2016 9:47:01 PM.
-     1>Project "D:\meng\visual studio\GBOOST2\GBoost2\GBoost2\GBoost2.vcxproj" on node 2 (Rebuild target(s)).
-     1>CudaClean:
-         cmd.exe /C "C:\Users\eeuser\AppData\Local\Temp\tmpe04ebac1cc814c7189f33802b5f38767.cmd"
-         "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v7.5\bin\nvcc.exe" -ccbin "C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin"  -I"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v7.5\include" -I"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v7.5\include"  -G   --keep-dir Debug -maxrregcount=0  --machine 32 --compile   -g   -D_MBCS -D_CRT_SECURE_NO_WARNINGS -D_MBCS -Xcompiler "/EHsc /W3 /nologo /Od /Zi /RTC1 /MDd " -o Debug\boost_CUDA_kernel.cu.obj "D:\meng\visual studio\GBOOST2\GBoost2\GBoost2\boost_CUDA_kernel.cu" -clean
-         
-         D:\meng\visual studio\GBOOST2\GBoost2\GBoost2>"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v7.5\bin\nvcc.exe" -ccbin "C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin"  -I"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v7.5\include" -I"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v7.5\include"  -G   --keep-dir Debug -maxrregcount=0  --machine 32 --compile   -g   -D_MBCS -D_CRT_SECURE_NO_WARNINGS -D_MBCS -Xcompiler "/EHsc /W3 /nologo /Od /Zi /RTC1 /MDd " -o Debug\boost_CUDA_kernel.cu.obj "D:\meng\visual studio\GBOOST2\GBoost2\GBoost2\boost_CUDA_kernel.cu" -clean 
-         boost_CUDA_kernel.cu
-       AddCudaCompileDeps:
+﻿Build started 5/17/2016 5:20:21 PM.
+     1>Project "D:\meng\visual studio\GBOOST2\GBoost2\GBoost2\GBoost2.vcxproj" on node 2 (Build target(s)).
+     1>AddCudaCompileDeps:
          C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\cl.exe /E /nologo /showIncludes /TP /D__CUDACC__ /D_MBCS /D_CRT_SECURE_NO_WARNINGS /D_MBCS /I"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v7.5\include" /I"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v7.5\bin" /I"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v7.5\include" /I. /FIcuda_runtime.h /c "D:\meng\visual studio\GBOOST2\GBoost2\GBoost2\boost_CUDA_kernel.cu" 
        CudaBuild:
          Compiling CUDA source file boost_CUDA_kernel.cu...
-         cmd.exe /C "C:\Users\eeuser\AppData\Local\Temp\tmp57a954c28ac147f2984233c754c2833e.cmd"
+         cmd.exe /C "C:\Users\eeuser\AppData\Local\Temp\tmp6800169b86774dafb123a4af82082c97.cmd"
          "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v7.5\bin\nvcc.exe" -gencode=arch=compute_20,code=\"sm_20,compute_20\" --use-local-env --cl-version 2013 -ccbin "C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin"  -I"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v7.5\include" -I"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v7.5\include"  -G   --keep-dir Debug -maxrregcount=0  --machine 32 --compile -cudart static  -g   -D_MBCS -D_CRT_SECURE_NO_WARNINGS -D_MBCS -Xcompiler "/EHsc /W3 /nologo /Od /Zi /RTC1 /MDd " -o Debug\boost_CUDA_kernel.cu.obj "D:\meng\visual studio\GBOOST2\GBoost2\GBoost2\boost_CUDA_kernel.cu"
          
          D:\meng\visual studio\GBOOST2\GBoost2\GBoost2>"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v7.5\bin\nvcc.exe" -gencode=arch=compute_20,code=\"sm_20,compute_20\" --use-local-env --cl-version 2013 -ccbin "C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin"  -I"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v7.5\include" -I"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v7.5\include"  -G   --keep-dir Debug -maxrregcount=0  --machine 32 --compile -cudart static  -g   -D_MBCS -D_CRT_SECURE_NO_WARNINGS -D_MBCS -Xcompiler "/EHsc /W3 /nologo /Od /Zi /RTC1 /MDd " -o Debug\boost_CUDA_kernel.cu.obj "D:\meng\visual studio\GBOOST2\GBoost2\GBoost2\boost_CUDA_kernel.cu" 
@@ -22,19 +16,12 @@
      1>D:/meng/visual studio/GBOOST2/GBoost2/GBoost2/boost_CUDA_kernel.cu(261): warning C4244: 'initializing' : conversion from '__int64' to 'int', possible loss of data
      1>D:/meng/visual studio/GBOOST2/GBoost2/GBoost2/boost_CUDA_kernel.cu(262): warning C4244: 'initializing' : conversion from '__int64' to 'int', possible loss of data
      1>D:/meng/visual studio/GBOOST2/GBoost2/GBoost2/boost_CUDA_kernel.cu(271): warning C4101: 'gpu_floatArray' : unreferenced local variable
-       ClCompile:
-         C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\CL.exe /c /I"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v7.5\include" /ZI /nologo /W3 /WX- /sdl /Od /Oy- /D _MBCS /D _CRT_SECURE_NO_WARNINGS /D _MBCS /Gm /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Debug\\" /Fd"Debug\vc120.pdb" /Gd /TP /analyze- /errorReport:prompt main.cpp
-         main.cpp
-     1>d:\meng\visual studio\gboost2\gboost2\gboost2\main.cpp(785): warning C4244: '=' : conversion from 'double' to 'int', possible loss of data
-     1>d:\meng\visual studio\gboost2\gboost2\gboost2\main.cpp(945): warning C4018: '<' : signed/unsigned mismatch
-     1>d:\meng\visual studio\gboost2\gboost2\gboost2\main.cpp(960): warning C4018: '<' : signed/unsigned mismatch
-     1>d:\meng\visual studio\gboost2\gboost2\gboost2\main.cpp(689): warning C4101: 'offset' : unreferenced local variable
        Link:
          C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"D:\meng\visual studio\GBOOST2\GBoost2\Debug\GBoost2.exe" /INCREMENTAL /NOLOGO /LIBPATH:"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v7.5\lib\Win32" kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib cudart.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /DEBUG /PDB:"D:\meng\visual studio\GBOOST2\GBoost2\Debug\GBoost2.pdb" /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"D:\meng\visual studio\GBOOST2\GBoost2\Debug\GBoost2.lib" /MACHINE:X86 Debug\boost_CUDA_kernel.cu.obj
          Debug\main.obj
          GBoost2.vcxproj -> D:\meng\visual studio\GBOOST2\GBoost2\Debug\GBoost2.exe
-     1>Done Building Project "D:\meng\visual studio\GBOOST2\GBoost2\GBoost2\GBoost2.vcxproj" (Rebuild target(s)).
+     1>Done Building Project "D:\meng\visual studio\GBOOST2\GBoost2\GBoost2\GBoost2.vcxproj" (Build target(s)).
 
 Build succeeded.
 
-Time Elapsed 00:00:07.18
+Time Elapsed 00:00:06.18

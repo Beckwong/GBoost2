@@ -67,7 +67,7 @@ __global__ void Screening_kernel(uint64* genoCtrl_F, uint64* genoCtrl_M, uint64*
 			count = 0;
 			for (int k = 0; k < nlongintCtrl_F; k++)
 			{
-				andResult = genoCtrl_F[k * 3 * nsnps + i*nsnps + snp1] & genoCtrl_F[k * 3 * nsnps + j*nsnps + snp2];
+				andResult = (genoCtrl_F[k * 3 * nsnps + i*nsnps + snp1] & genoCtrl_F[k * 3 * nsnps + j*nsnps + snp2]);
 				count += dev_count_bit(andResult);
 			}
 			localGenoDistr[i * 3 + j] = count;
@@ -81,7 +81,7 @@ __global__ void Screening_kernel(uint64* genoCtrl_F, uint64* genoCtrl_M, uint64*
 			count = 0;
 			for (int k = 0; k < nlongintCtrl_M; k++)
 			{
-				andResult = genoCtrl_M[k * 3 * nsnps + i*nsnps + snp1] & genoCtrl_M[k * 3 * nsnps + j*nsnps + snp2];
+				andResult =(genoCtrl_M[k * 3 * nsnps + i*nsnps + snp1] & genoCtrl_M[k * 3 * nsnps + j*nsnps + snp2]);
 				count += dev_count_bit(andResult);
 			}
 			localGenoDistr[9 + i * 3 + j] = count;
@@ -184,12 +184,12 @@ __global__ void Screening_kernel(uint64* genoCtrl_F, uint64* genoCtrl_M, uint64*
 			{
 				for (int t = 0; t < 2; t++)
 				{
-					ptmp1 = (float)localGenoDistr[k * 18 + t * 9 + i * 3 + j] / nsamples;
+					ptmp1 = (double)localGenoDistr[k * 18 + t * 9 + i * 3 + j] / nsamples;
 					if (ptmp1 > 0)
 					{
 						InteractionMeasure += ptmp1*log(ptmp1);
 					}
-					if ((pMarginalDistrSNP[i*nsnps + snp1]>0) && (pMarginalDistrSNP[j*nsnps + snp2]>0) * (Sk[k]>0) * (St[t] > 0))
+					if ((pMarginalDistrSNP[i*nsnps + snp1]>0) && (pMarginalDistrSNP[j*nsnps + snp2]>0) && (Sk[k]>0) && (St[t] > 0))
 					{
 						ptmp2 = (float)(pMarginalDistrSNP_Y[(i * MarginalDistrSNP_Y_DimensionX + k * 2)*nsnps + snp1] + pMarginalDistrSNP_Y[(i * MarginalDistrSNP_Y_DimensionX + k * 2 + 1)*nsnps + snp1])*
 							(pMarginalDistrSNP_Y[(j * MarginalDistrSNP_Y_DimensionX + k * 2)*nsnps + snp2] + pMarginalDistrSNP_Y[(j * MarginalDistrSNP_Y_DimensionX + k * 2 + 1)*nsnps + snp2])

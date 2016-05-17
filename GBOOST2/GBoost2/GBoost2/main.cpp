@@ -219,7 +219,7 @@ void CalculateGenoJointDistr(uint64* genoCtrl_F, uint64* genoCtrl_M, uint64* gen
 			count = 0;
 			for (i3 = 0; i3 < nlongintCase_Gender[2]; i3++)
 			{
-				count += popcount(genoCase_F[i3*nsnps * 3 + i1*nsnps + snp1] & genoCase_M[i3 * 3 * nsnps + i2*nsnps + snp2]);
+				count += popcount(genoCase_F[i3*nsnps * 3 + i1*nsnps + snp1] & genoCase_F[i3 * 3 * nsnps + i2*nsnps + snp2]);
 			}
 			GenoDistr[18 + i1 * 3 + i2] = count;
 			count = 0;
@@ -941,7 +941,17 @@ int main()
 	time(&st);
 	printf("\n Start post-correction...\n");
 	fflush(stdout);
+	//testing starts here
+	{
+		int snp1 = 0, snp2 = 1;
+		CalculateGenoJointDistr(genoCtrl_F, genoCtrl_M, genoCase_F, genoCase_M, nlongintCase_Gender, nsnps, GenoJointDistr, snp1, snp2, pMarginalDistrSNP_Y);
+		InteractionMeasure = 2 * (PostCorrection(GenoJointDistr, nsamples, 1) - PostCorrection(GenoJointDistr, nsamples, 0));
+		cout << "Testing interaction measure:" << InteractionMeasure<<endl;
+	}
 
+
+
+	//testing ends here
 	for (int ii=0; ii < offsetListJ1.size(); ii++,iterJ1++,iterJ2++)
 	{
 		int snp1 = *iterJ1;
@@ -964,7 +974,7 @@ int main()
 	fout.close();
 		
 	time(&ed);
-	printf("Cpu time used in post-correction: \n", (int)(ed - st));
+	printf("Cpu time used in post-correction: %d \n", (int)(ed - st));
 
 	
 
@@ -982,7 +992,7 @@ int main()
 	free(genoCase_M);
 
 	time(&totalend);
-	printf("Total time used: \n", int(totalend - totalst));
-
+	printf("Total time used:%d \n", int(totalend - totalst));
+	
 
 }
